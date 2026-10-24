@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { countries, servicePackages, type ServicePackage } from "@/lib/mock-data";
+import { createRequest } from "@/app/actions/create-request";
 
 const degreeLevels = [
   { value: "thpt", label: "THPT" },
@@ -43,15 +44,38 @@ export function QuoteForm() {
   const [country, setCountry] = React.useState<string>("");
   const [degreeLevel, setDegreeLevel] = React.useState<string>("dai_hoc");
   const [selectedPackage, setSelectedPackage] = React.useState<ServicePackage>("co_ban");
+  const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [phone, setPhone] = React.useState("");
   const [submitted, setSubmitted] = React.useState(false);
+  const [pending, setPending] = React.useState(false);
+  const [error, setError] = React.useState("");
 
   const chosenPackage = servicePackages.find((p) => p.id === selectedPackage)!;
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSubmitted(true);
+    setError("");
+    setPending(true);
+    try {
+      const result = await createRequest({
+        customerName: name,
+        email,
+        country,
+        degreeLevel,
+        package: selectedPackage,
+      });
+      if (result.ok) {
+        setSubmitted(true);
+      } else {
+        setSubmitted(false);
+        setError(result.error);
+      }
+    } catch {
+      setError("Không gửi được yêu cầu, vui lòng thử lại.");
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
@@ -151,6 +175,18 @@ export function QuoteForm() {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="name">Họ và tên</Label>
+              <Input
+                id="name"
+                required
+                maxLength={120}
+                placeholder="Nguyễn Văn A"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+
             <div className="grid gap-6 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="email">Email liên hệ</Label>
@@ -176,9 +212,15 @@ export function QuoteForm() {
               </div>
             </div>
 
-            <Button type="submit" size="lg" className="w-full sm:w-auto">
-              Nhận báo giá
+            <Button type="submit" size="lg" className="w-full sm:w-auto" disabled={pending}>
+              {pending ? "Đang gửi..." : "Nhận báo giá"}
             </Button>
+
+            {error && (
+              <p role="alert" className="text-sm text-destructive">
+                {error}
+              </p>
+            )}
 
             {submitted && (
               <div className="space-y-3 rounded-xl border border-primary/20 bg-accent p-5">

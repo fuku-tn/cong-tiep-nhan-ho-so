@@ -10,9 +10,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { schools } from "@/lib/mock-data";
+import { createClient } from "@/lib/supabase/server";
 
-export default function AdminSchoolsPage() {
+export default async function AdminSchoolsPage() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("schools")
+    .select("id, name, country, min_gpa, min_ielts")
+    .order("name");
+  if (error) throw new Error(error.message);
+
+  const schools = data.map((s) => ({
+    id: s.id as string,
+    name: s.name as string,
+    country: s.country as string,
+    minGpa: Number(s.min_gpa),
+    minIelts: Number(s.min_ielts),
+  }));
+
   return (
     <>
       <AdminPageHeader
